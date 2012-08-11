@@ -1,0 +1,3 @@
+[submodule "lib/samtools"]
+	path = lib/samtools
+	url = https://github.com/samtools/samtools.git
