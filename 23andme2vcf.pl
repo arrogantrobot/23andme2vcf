@@ -38,17 +38,19 @@ seek($fh, -length($line), 1);
 #process 23andme data line by line
 while(my $line = $fh->getline) {
 	chomp $line;
-	if ($line =~ m/^#/) {
-		next;
-	}
 
 	#read in a line of the 23andme data
 	my ($rsid, $chr, $pos, $alleles) = split /\t/, $line;
 	if (not $rsid) { 
 		$rsid = ".";
 	}
+	#skip current line if the call was "--"
 	if (substr($alleles,0,1) eq '-') {
 		next;
+	}
+	#change MT to M, to match reference
+	if (substr($chr, 0, 2) eq 'MT') {
+		$chr = "M";
 	}
 
 	#append "chr" to chromosome names to match reference
