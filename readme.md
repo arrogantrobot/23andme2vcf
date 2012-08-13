@@ -5,6 +5,9 @@ This tool has been built in order to allow a user of 23andme to process the raw 
 
 A reference is included which is limited to only those sites targetted by the 23andme microarray. 23andme recently made the change from build36 (hg18) to build37 (hg19), so any raw files downloaded before August 9, 2012 will be based on the older build36 coordinates. Simply download the raw data again and it will be on the build37 coordinates. If there is a need for build36 support, let me know and I can add that in as an option.
 
+*IN/DELs* are currently unsupported by this program. Support is planned for the near future.
+
+
 Usage
 =======
 
