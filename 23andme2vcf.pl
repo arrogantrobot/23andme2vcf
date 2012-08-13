@@ -52,6 +52,11 @@ while(my $line = $fh->getline) {
 	if (substr($alleles,0,1) eq '-') {
 		next;
 	}
+
+	#skip insertions and deletions
+	if ( ($alleles eq "DD") || ($alleles eq "DI") || ($alleles == "II")) {
+		next;
+	}
 	#change MT to M, to match reference
 	if (substr($chr, 0, 2) eq 'MT') {
 		$chr = "M";
