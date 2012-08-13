@@ -13,7 +13,11 @@ my $output_path = $ARGV[1];
 my $ref_path = "23andme_hg19_refs.txt.gz";
 
 my $date = strftime('%Y%m%d',localtime);
-my $fh = IO::File->new($raw_path);
+
+missing($raw_path) unless -s $raw_path;
+
+#open the raw data as a zip or text
+my $fh = ($raw_path =~ m/zip$/) ? IO::File->new("zcat $raw_path|") : IO::File->new($raw_path);
 
 #open the compressed reference file
 my $ref_fh = IO::File->new("zcat $ref_path|");
@@ -59,6 +63,20 @@ while(my $line = $fh->getline) {
 	#get the reference base from 23andme ref 
 	my $ref = getRef($chr,$pos);
 
+	#get the genotype
+	my ($alt,$genotype) = getAltAndGenotype($ref, $alleles);
+
+	#output a line of VCF data
+	print $output_fh "$chr\t$pos\t$rsid\t$ref\t$alt\t.\t.\t.\tGT\t$genotype\n";
+}
+
+$fh->close;
+$output_fh->close;
+
+#determine genotype
+sub getAltAndGenotype {
+	my $ref = shift;
+	my $alleles = shift;
 	#retrieve alleles from raw data
 	my ($a, $b) = split //, $alleles;
 	if ($b !~ m/[A,C,G,T,N,a,c,g,t,n]/) {
@@ -102,13 +120,8 @@ while(my $line = $fh->getline) {
 			}
 		}
 	}
-
-	#output a line of VCF data
-	print $output_fh "$chr\t$pos\t$rsid\t$ref\t$alt\t.\t.\t.\tGT\t$genotype\n";
+	return $alt, $genotype;
 }
-
-$fh->close;
-$output_fh->close;
 
 #grab a line(s) from the reference file
 sub getRef {
@@ -136,6 +149,12 @@ sub getRef {
 }
 
 sub usage {
-	print "usage:   ./23andme2vcf /path/to/23andme/raw_data.txt /path/to/output/file.vcf\n";
+	print "usage:   ./23andme2vcf /path/to/23andme/raw_data.(zip,txt) /path/to/output/file.vcf\n";
 	exit(1);
+}
+
+sub missing {
+	my $path = shift;
+	print "Could not locate a file at: $path\n";
+	usage();
 }
