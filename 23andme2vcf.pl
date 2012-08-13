@@ -48,13 +48,15 @@ while(my $line = $fh->getline) {
 	if (not $rsid) { 
 		$rsid = ".";
 	}
+	chomp $alleles;
 	#skip current line if the call was "--"
 	if (substr($alleles,0,1) eq '-') {
 		next;
 	}
 
 	#skip insertions and deletions
-	if ( ($alleles eq "DD") || ($alleles eq "DI") || ($alleles == "II")) {
+	my $al = substr($alleles,0,1);
+	if (($al eq "D") || ($al eq "I")) { 
 		next;
 	}
 	#change MT to M, to match reference
