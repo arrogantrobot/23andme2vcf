@@ -14,6 +14,8 @@ my $ref_path = "23andme_hg19_refs.txt.gz";
 
 my $date = strftime('%Y%m%d',localtime);
 my $fh = IO::File->new($raw_path);
+
+#open the compressed reference file
 my $ref_fh = IO::File->new("zcat $ref_path|");
 
 my $output_fh = IO::File->new(">$output_path");
@@ -48,15 +50,14 @@ while(my $line = $fh->getline) {
 	if (substr($alleles,0,1) eq '-') {
 		next;
 	}
+
+	#append "chr" to chromosome names to match reference
 	$chr = "chr$chr";
 
 	#get the reference base from 23andme ref 
 	my $ref = getRef($chr,$pos);
-	my $a_thing = 10;
 
-	#if ($rsid eq "rs5939319") {
-#		$a_thing++;
-#	}
+	#retrieve alleles from raw data
 	my ($a, $b) = split //, $alleles;
 	if ($b !~ m/[A,C,G,T,N,a,c,g,t,n]/) {
 		$b = undef;
@@ -107,12 +108,16 @@ while(my $line = $fh->getline) {
 $fh->close;
 $output_fh->close;
 
+#grab a line(s) from the reference file
 sub getRef {
 	my $my_chr = shift;
 	my $my_pos = shift;
 	my $get_ref_line = 1;
 	my $my_ref;
 	my $data_line;
+
+	#if the reference line is less than our current position, 
+	# grab lines until the current position is reached or exceded
 	while($get_ref_line) {
 		$data_line = $ref_fh->getline;
 		chomp $data_line;
@@ -129,6 +134,6 @@ sub getRef {
 }
 
 sub usage {
-	print "usage:   ./23andme2vcf /path/to/23andme/raw_data.txt /path/to/23andme/reference.fa [/path/to/output/file.vcf]\n";
+	print "usage:   ./23andme2vcf /path/to/23andme/raw_data.txt /path/to/output/file.vcf\n";
 	exit(1);
 }
