@@ -6,15 +6,15 @@ use warnings;
 use IO::File;
 use POSIX qw/strftime/;
 
-usage() unless @ARGV >= 2;
+usage() unless @ARGV == 2;
 
 my $raw_path = $ARGV[0];
-my $ref_path = $ARGV[1];
-my $output_path = $ARGV[2];
+my $output_path = $ARGV[1];
+my $ref_path = "23andme_hg19_refs.txt.gz";
 
 my $date = strftime('%Y%m%d',localtime);
 my $fh = IO::File->new($raw_path);
-my $ref_fh = IO::File->new($ref_path);
+my $ref_fh = IO::File->new("zcat $ref_path|");
 
 my $output_fh = IO::File->new(">$output_path");
 
