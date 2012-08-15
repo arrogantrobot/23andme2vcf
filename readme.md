@@ -18,3 +18,8 @@ cd 23andme2vcf
 perl 23andme2vcf.pl /path/to/23andme_raw.(zip,txt) /path/to/output.vcf
 
 This tool will work equally well with the compressed raw file (.zip format) or the uncompressed, text file.
+
+Reference
+=========
+
+The reference contained here-in is a list of reference bases taken from NCBI build37, which matches those sites included in the 23andme microarray exactly, in order to limit the file size and speed up creation of the VCF.
