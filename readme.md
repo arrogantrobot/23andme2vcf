@@ -22,4 +22,4 @@ This tool will work equally well with the compressed raw file (.zip format) or t
 Reference
 =========
 
-The reference contained here-in is a list of reference bases taken from NCBI build37, which matches those sites included in the 23andme microarray exactly, in order to limit the file size and speed up creation of the VCF.
+The reference contained here-in is a list of reference bases taken from [NCBI build37] (http://hgdownload.cse.ucsc.edu/goldenPath/hg19/chromosomes/ "NCBI build37"), which matches those sites included in the 23andme microarray exactly, in order to limit the file size and speed up creation of the VCF.
