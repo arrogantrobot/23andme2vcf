@@ -15,6 +15,7 @@ my $ref_path = "23andme_hg19_refs.txt.gz";
 my $date = strftime('%Y%m%d',localtime);
 
 missing($raw_path) unless -s $raw_path;
+missing($ref_path) unless -s $ref_path;
 
 #open the raw data as a zip or text
 my $fh = ($raw_path =~ m/zip$/) ? IO::File->new("zcat $raw_path|") : IO::File->new($raw_path);
