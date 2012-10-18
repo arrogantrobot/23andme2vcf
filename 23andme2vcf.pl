@@ -10,7 +10,7 @@ usage() unless @ARGV == 2;
 
 my $raw_path = $ARGV[0];
 my $output_path = $ARGV[1];
-my $ref_path = "23andme_hg19_refs.txt.gz";
+my $ref_path = "23andme_hg19ref_20121017.txt.gz";
 
 my $date = strftime('%Y%m%d',localtime);
 
