@@ -18,10 +18,10 @@ missing($raw_path) unless -s $raw_path;
 missing($ref_path) unless -s $ref_path;
 
 #open the raw data as a zip or text
-my $fh = ($raw_path =~ m/zip$/) ? IO::File->new("zcat $raw_path|") : IO::File->new($raw_path);
+my $fh = ($raw_path =~ m/zip$/) ? IO::File->new("gunzip -c $raw_path|") : IO::File->new($raw_path);
 
 #open the compressed reference file
-my $ref_fh = IO::File->new("zcat $ref_path|");
+my $ref_fh = IO::File->new("gunzip -c $ref_path|");
 
 my $output_fh = IO::File->new(">$output_path");
 
