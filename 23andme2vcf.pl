@@ -150,7 +150,7 @@ sub getRef {
 			$get_ref_line = 0;
 		}
 		if ($pos > $my_pos) {
-			die "raw data file and reference file are out of sync";
+			die "raw data file and reference file are out of sync" unless ($chr eq "chrY");
 		}
 	}
 	return $my_ref;
