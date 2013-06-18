@@ -8,6 +8,9 @@ use POSIX qw/strftime/;
 
 usage() unless @ARGV == 2;
 
+my ($ref_chr, $ref_pos, $ref_base);
+my $PASS = "PASS";
+
 my $raw_path = $ARGV[0];
 my $output_path = $ARGV[1];
 my $ref_path = "23andme_hg19ref_20121017.txt.gz";
@@ -70,6 +73,10 @@ while(my $line = $fh->getline) {
 
 	#get the reference base from 23andme ref 
 	my $ref = getRef($chr,$pos);
+
+    if ($ref eq $PASS) {
+        next;
+    }
 
 	#get the genotype
 	my ($alt,$genotype) = getAltAndGenotype($ref, $alleles);
@@ -135,6 +142,14 @@ sub getAltAndGenotype {
 sub getRef {
 	my $my_chr = shift;
 	my $my_pos = shift;
+
+    if (defined($ref_chr) && defined($ref_pos) && defined($ref_base)) {
+        if (($ref_chr eq $my_chr) && ($ref_pos == $my_pos)) {
+            return $ref_base;
+        }
+    }
+
+
 	my $get_ref_line = 1;
 	my $my_ref;
 	my $data_line;
@@ -151,7 +166,10 @@ sub getRef {
 		}
 		if ($pos > $my_pos) {
             if ($chr eq $my_chr) {
-			    die "raw data file and reference file are out of sync" unless ($chr eq "chrY");
+                $ref_chr = $chr;
+                $ref_pos = $pos;
+                $ref_base = $ref;
+                return $PASS;
             }
 		}
 	}
