@@ -10,6 +10,7 @@ usage() unless @ARGV == 2;
 
 my ($ref_chr, $ref_pos, $ref_base);
 my $PASS = "PASS";
+my $skip_count = 0;
 
 my $raw_path = $ARGV[0];
 my $output_path = $ARGV[1];
@@ -87,6 +88,8 @@ while(my $line = $fh->getline) {
 
 $fh->close;
 $output_fh->close;
+
+skips();
 
 #determine genotype
 sub getAltAndGenotype {
@@ -185,4 +188,12 @@ sub missing {
 	my $path = shift;
 	print "Could not locate a file at: $path\n";
 	usage();
+}
+
+sub skips {
+    if ($skip_count) {
+        print "There were $skip_count records skipped because the reference is \
+        out of date. See https://github.com/arrogantrobot/hg19_23andme_refs to \
+        create your own up-to-date reference.\n"        
+    }
 }
