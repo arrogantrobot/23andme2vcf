@@ -24,9 +24,6 @@ missing($ref_path) unless -s $ref_path;
 #open the raw data as a zip or text
 my $fh = ($raw_path =~ m/zip$/) ? IO::File->new("gunzip -c $raw_path|") : IO::File->new($raw_path);
 
-#open the compressed reference file
-my $ref_fh = IO::File->new("gunzip -c $ref_path|");
-
 my $output_fh = IO::File->new(">$output_path");
 
 #print the header for the VCF
@@ -37,53 +34,73 @@ print $output_fh "##reference=file://$ref_path\n";
 print $output_fh "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 print $output_fh "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tGENOTYPE\n";
 
+# load reference into memory, thank you @MattBrauer for this chunk of code! -- issue #4
+my %ref = ();
+my $ref_fh = IO::File->new("gunzip -c $ref_path|");
+while(<$ref_fh>) {
+  chomp $_;
+  my ($chr,$pos,$rsid,$ref) = split /\t/, $_;
+  $ref{$chr}{$pos} = { 
+    rsid => $rsid,
+    ref => $ref,
+  };
+}
+close $ref_fh;
+
 #skip the header of the 23andme file
 my $line = $fh->getline;
 while($line =~ m/^#/) {
-	$line = $fh->getline;
+  $line = $fh->getline;
 }
 seek($fh, -length($line), 1);
 
 #process 23andme data line by line
 while(my $line = $fh->getline) {
-	chomp $line;
+  chomp $line;
 
-	#read in a line of the 23andme data
-	my ($rsid, $chr, $pos, $alleles) = split /\t/, $line;
-	if (not $rsid) { 
-		$rsid = ".";
-	}
-	chomp $alleles;
-	#skip current line if the call was "--"
-	if (substr($alleles,0,1) eq '-') {
-		next;
-	}
+  #read in a line of the 23andme data
+  my ($rsid, $chr, $pos, $alleles) = split /\t/, $line;
+  if (not $rsid) { 
+    $rsid = ".";
+  }
+  chomp $alleles;
+  #skip current line if the call was "--"
+  if (substr($alleles,0,1) eq '-') {
+    next;
+  }
 
-	#skip insertions and deletions
-	my $al = substr($alleles,0,1);
-	if (($al eq "D") || ($al eq "I")) { 
-		next;
-	}
-	#change MT to M, to match reference
-	if (substr($chr, 0, 2) eq 'MT') {
-		$chr = "M";
-	}
+  #skip insertions and deletions
+  my $al = substr($alleles,0,1);
+  if (($al eq "D") || ($al eq "I")) { 
+    next;
+  }
+  #change MT to M, to match reference
+  if (substr($chr, 0, 2) eq 'MT') {
+    $chr = "M";
+  }
 
-	#append "chr" to chromosome names to match reference
-	$chr = "chr$chr";
+  #append "chr" to chromosome names to match reference
+  $chr = "chr$chr";
 
-	#get the reference base from 23andme ref 
-	my $ref = getRef($chr,$pos);
+  #get the reference base from 23andme ref 
+  my $ref;
+  if (exists($ref{$chr}{$pos})) {
+    $ref = $ref{$chr}{$pos}{ref};
+  } else {
+    print "$chr\t$pos\n";
+    $skip_count++;
+    next;
+  }
 
-    if ($ref eq $PASS) {
-        next;
-    }
+  if ($ref eq $PASS) {
+    next;
+  }
 
-	#get the genotype
-	my ($alt,$genotype) = getAltAndGenotype($ref, $alleles);
+  #get the genotype
+  my ($alt,$genotype) = getAltAndGenotype($ref, $alleles);
 
-	#output a line of VCF data
-	print $output_fh "$chr\t$pos\t$rsid\t$ref\t$alt\t.\t.\t.\tGT\t$genotype\n";
+  #output a line of VCF data
+  print $output_fh "$chr\t$pos\t$rsid\t$ref\t$alt\t.\t.\t.\tGT\t$genotype\n";
 }
 
 $fh->close;
@@ -93,107 +110,69 @@ skips();
 
 #determine genotype
 sub getAltAndGenotype {
-	my $ref = shift;
-	my $alleles = shift;
-	#retrieve alleles from raw data
-	my ($a, $b) = split //, $alleles;
-	if ($b !~ m/[A,C,G,T,N,a,c,g,t,n]/) {
-		$b = undef;
-	}
-	my $alt;
-	my $lc_ref = lc($ref);
-	my $lc_a = lc($a);
+  my $ref = shift;
+  my $alleles = shift;
+  #retrieve alleles from raw data
+  my ($a, $b) = split //, $alleles;
+  if ($b !~ m/[A,C,G,T,N,a,c,g,t,n]/) {
+    $b = undef;
+  }
+  my $alt;
+  my $lc_ref = lc($ref);
+  my $lc_a = lc($a);
 
-	my $genotype;
+  my $genotype;
 
-	#determine which of the alleles are alts, if any
-	if ($a && not $b) {
-		if ($lc_a eq $lc_ref) {
-			$alt = ".";
-			$genotype = "0";
-		} else {
-			$alt = $a;
-			$genotype = "1";
-		}
-	} else {
-		my $lc_b = lc($b);
-		if ($lc_a ne $lc_b) {
-			if ($lc_ref eq $lc_a) {
-				$alt = $b;
-				$genotype = "0/1";
-			} elsif ($lc_ref eq $lc_b) {
-				$alt = $a;
-				$genotype = "0/1";
-			} else {
-				$alt = "$a,$b";
-				$genotype = "1/2";
-			}
-		} else {
-			if ($lc_a eq $lc_ref) {
-				$alt = ".";
-				$genotype = "0/0";
-			} else {
-				$alt = "$a";
-				$genotype = "1/1";
-			}
-		}
-	}
-	return $alt, $genotype;
-}
-
-#grab a line(s) from the reference file
-sub getRef {
-	my $my_chr = shift;
-	my $my_pos = shift;
-
-    if (defined($ref_chr) && defined($ref_pos) && defined($ref_base)) {
-        if (($ref_chr eq $my_chr) && ($ref_pos == $my_pos)) {
-            return $ref_base;
-        }
+  #determine which of the alleles are alts, if any
+  if ($a && not $b) {
+    if ($lc_a eq $lc_ref) {
+      $alt = ".";
+      $genotype = "0";
+    } else {
+      $alt = $a;
+      $genotype = "1";
     }
-
-
-	my $get_ref_line = 1;
-	my $my_ref;
-	my $data_line;
-
-	#if the reference line is less than our current position, 
-	# grab lines until the current position is reached or exceded
-	while($get_ref_line) {
-		$data_line = $ref_fh->getline;
-		chomp $data_line;
-		my ($chr,$pos,$rsid,$ref) = split /\t/, $data_line;
-		if (($chr eq $my_chr) && ($pos == $my_pos)) {
-			$my_ref = $ref;
-			$get_ref_line = 0;
-		}
-		if ($pos > $my_pos) {
-            if ($chr eq $my_chr) {
-                $ref_chr = $chr;
-                $ref_pos = $pos;
-                $ref_base = $ref;
-                return $PASS;
-            }
-		}
-	}
-	return $my_ref;
+  } else {
+    my $lc_b = lc($b);
+    if ($lc_a ne $lc_b) {
+      if ($lc_ref eq $lc_a) {
+        $alt = $b;
+        $genotype = "0/1";
+      } elsif ($lc_ref eq $lc_b) {
+        $alt = $a;
+        $genotype = "0/1";
+      } else {
+        $alt = "$a,$b";
+        $genotype = "1/2";
+      }
+    } else {
+      if ($lc_a eq $lc_ref) {
+        $alt = ".";
+        $genotype = "0/0";
+      } else {
+        $alt = "$a";
+        $genotype = "1/1";
+      }
+    }
+  }
+  return $alt, $genotype;
 }
 
 sub usage {
-	print "usage:   ./23andme2vcf /path/to/23andme/raw_data.(zip,txt) /path/to/output/file.vcf\n";
-	exit(1);
+  print "usage:   ./23andme2vcf /path/to/23andme/raw_data.(zip,txt) /path/to/output/file.vcf\n";
+  exit(1);
 }
 
 sub missing {
-	my $path = shift;
-	print "Could not locate a file at: $path\n";
-	usage();
+  my $path = shift;
+  print "Could not locate a file at: $path\n";
+  usage();
 }
 
 sub skips {
-    if ($skip_count) {
-        print "There were $skip_count records skipped because the reference is \
-        out of date. See https://github.com/arrogantrobot/hg19_23andme_refs to \
-        create your own up-to-date reference.\n"        
-    }
+  if ($skip_count) {
+    print "There were $skip_count records skipped because the reference is \
+    out of date. See https://github.com/arrogantrobot/hg19_23andme_refs to \
+    create your own up-to-date reference.\n"        
+  }
 }
