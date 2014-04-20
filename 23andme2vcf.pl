@@ -15,6 +15,7 @@ my $skip_count = 0;
 my $raw_path = $ARGV[0];
 my $output_path = $ARGV[1];
 my $ref_path = "23andme_hg19ref_20121017.txt.gz";
+my $missing_ref_path = "sites_not_in_reference.txt";
 
 my $date = strftime('%Y%m%d',localtime);
 
@@ -25,6 +26,7 @@ missing($ref_path) unless -s $ref_path;
 my $fh = ($raw_path =~ m/zip$/) ? IO::File->new("gunzip -c $raw_path|") : IO::File->new($raw_path);
 
 my $output_fh = IO::File->new(">$output_path");
+my $missing_ref_fh = -1;
 
 #print the header for the VCF
 print $output_fh "##fileformat=VCFv4.1\n";
@@ -87,8 +89,7 @@ while(my $line = $fh->getline) {
   if (exists($ref{$chr}{$pos})) {
     $ref = $ref{$chr}{$pos}{ref};
   } else {
-    print "$chr\t$pos\n";
-    $skip_count++;
+    missing_sites($chr,$pos);
     next;
   }
 
@@ -105,6 +106,9 @@ while(my $line = $fh->getline) {
 
 $fh->close;
 $output_fh->close;
+if ($missing_ref_fh != -1) {
+  $missing_ref_fh->close;
+}
 
 skips();
 
@@ -167,6 +171,16 @@ sub missing {
   my $path = shift;
   print "Could not locate a file at: $path\n";
   usage();
+}
+
+sub missing_sites {
+  my $chr = shift;
+  my $pos = shift;
+  if ($missing_ref_fh == -1) {
+    $missing_ref_fh = IO::File->new(">$missing_ref_path");
+  }
+  print "$chr\t$pos\n";
+  $skip_count++;
 }
 
 sub skips {
