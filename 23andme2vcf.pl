@@ -179,7 +179,7 @@ sub missing_sites {
   if ($missing_ref_fh == -1) {
     $missing_ref_fh = IO::File->new(">$missing_ref_path");
   }
-  print "$chr\t$pos\n";
+  print $missing_ref_fh "$chr\t$pos\n";
   $skip_count++;
 }
 
