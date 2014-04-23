@@ -6,7 +6,7 @@ use warnings;
 use IO::File;
 use POSIX qw/strftime/;
 
-usage() unless @ARGV == 2;
+usage() unless @ARGV >= 2;
 
 my ($ref_chr, $ref_pos, $ref_base);
 my $PASS = "PASS";
@@ -14,7 +14,8 @@ my $skip_count = 0;
 
 my $raw_path = $ARGV[0];
 my $output_path = $ARGV[1];
-my $ref_path = "23andme_hg19ref_20121017.txt.gz";
+my $version = (defined($ARGV[2])) ? int($ARGV[2]) : 3;
+my $ref_path = "23andme_v".$version."_hg19_ref.txt.gz";
 my $missing_ref_path = "sites_not_in_reference.txt";
 
 my $date = strftime('%Y%m%d',localtime);
@@ -31,7 +32,7 @@ my $missing_ref_fh = -1;
 #print the header for the VCF
 print $output_fh "##fileformat=VCFv4.1\n";
 print $output_fh "##fileDate=$date\n";
-print $output_fh "##source=23andme_to_vcf.pl\n";
+print $output_fh "##source=23andme2vcf.pl https://github.com/arrogantrobot/23andme2vcf\n";
 print $output_fh "##reference=file://$ref_path\n";
 print $output_fh "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 print $output_fh "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tGENOTYPE\n";
@@ -89,7 +90,7 @@ while(my $line = $fh->getline) {
   if (exists($ref{$chr}{$pos})) {
     $ref = $ref{$chr}{$pos}{ref};
   } else {
-    missing_sites($chr,$pos);
+    missing_sites($rsid,$chr,$pos);
     next;
   }
 
@@ -163,7 +164,7 @@ sub getAltAndGenotype {
 }
 
 sub usage {
-  print "usage:   ./23andme2vcf /path/to/23andme/raw_data.(zip,txt) /path/to/output/file.vcf\n";
+  print "usage:   ./23andme2vcf /path/to/23andme/raw_data.(zip,txt) /path/to/output/file.vcf [23andme chip version, 3|4]\n";
   exit(1);
 }
 
@@ -174,19 +175,20 @@ sub missing {
 }
 
 sub missing_sites {
+  my $rsid = shift;
   my $chr = shift;
   my $pos = shift;
   if ($missing_ref_fh == -1) {
     $missing_ref_fh = IO::File->new(">$missing_ref_path");
   }
-  print $missing_ref_fh "$chr\t$pos\n";
+  print $missing_ref_fh "$rsid\t$chr\t$pos\n";
   $skip_count++;
 }
 
 sub skips {
   if ($skip_count) {
-    print "There were $skip_count records skipped because the reference is \
-    out of date. See https://github.com/arrogantrobot/hg19_23andme_refs to \
-    create your own up-to-date reference.\n"        
+    my $other_version = ($version == 3) ? 4 : 3;
+    print "$skip_count sites were not included. Try running again, but specify the other reference version:\n".
+    "./23andme2vcf.pl $ARGV[0] $ARGV[1] $other_version\n"
   }
 }
