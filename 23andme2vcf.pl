@@ -30,7 +30,7 @@ my $output_fh = IO::File->new(">$output_path");
 my $missing_ref_fh = -1;
 
 #print the header for the VCF
-print $output_fh "##fileformat=VCFv4.1\n";
+print $output_fh "##fileformat=VCFv4.2\n";
 print $output_fh "##fileDate=$date\n";
 print $output_fh "##source=23andme2vcf.pl https://github.com/arrogantrobot/23andme2vcf\n";
 print $output_fh "##reference=file://$ref_path\n";
