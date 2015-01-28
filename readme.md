@@ -12,12 +12,13 @@ If your sample was processed recently, since November of 2013, you may have vers
 
 Usage
 =======
-
+```bash
 git clone git://github.com/arrogantrobot/23andme2vcf.git
 
 cd 23andme2vcf
 
 perl 23andme2vcf.pl /path/to/23andme_raw.(zip,txt) /path/to/output.vcf
+```
 
 This tool will work equally well with the compressed raw file (.zip format) or the uncompressed, text file.
 
