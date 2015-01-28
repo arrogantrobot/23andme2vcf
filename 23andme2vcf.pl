@@ -188,7 +188,8 @@ sub missing_sites {
 sub skips {
   if ($skip_count) {
     my $other_version = ($version == 3) ? 4 : 3;
-    print "$skip_count sites were not included. Try running again, but specify the other reference version:\n".
+    print "$skip_count sites were not included; these unmatched references can be found in $missing_ref_path." . 
+    "Try running again, but specify the other reference version:\n".
     "./23andme2vcf.pl $ARGV[0] $ARGV[1] $other_version\n"
   }
 }
