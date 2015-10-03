@@ -20,7 +20,7 @@ cd 23andme2vcf
 perl 23andme2vcf.pl /path/to/23andme_raw.(zip,txt) /path/to/output.vcf
 ```
 
-This tool will work equally well with the compressed raw file (.zip format) or the uncompressed, text file.
+This tool will work equally well with the compressed raw file (.zip format) or the uncompressed text file.
 
 Reference
 =========
