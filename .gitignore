@@ -1,3 +1,5 @@
+*.sw?
+*.pyc
 23andme2vcf
 data
 *.o
