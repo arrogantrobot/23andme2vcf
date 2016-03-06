@@ -3,6 +3,7 @@
 import sys
 import getopt
 import gzip
+from datetime import date
 
 from memoized import memoize
 
@@ -63,6 +64,39 @@ def get_input(path):
         sys.exit()
     return f
 
+def open_file_for_output(path):
+    try:
+        f = open(path, 'w')
+    except IOError as e:
+        print("Error opening {0} for output".format(path))
+        print("I/O error({0}): {1}".format(e.errno, e.strerror))
+        sys.exit()
+    return f
+
+def write_header_to_file(f, ref_ver,name):
+    f.write("##fileformat=VCFv4.3\n")
+    f.write("##fileDate={0}\n".format(date.today().isoformat()))
+    f.write("##source=23andme2vcf.pl https://github.com/arrogantrobot/23andme2vcf\n")
+    f.write("##reference=https://github.com/arrogantrobot/23andme2vcf/blob/master/23andme_v{0}_hg19_ref.txt.gz\n".format(ref_ver))
+    f.write("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n")
+    f.write("#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t{0}\n".format(name))
+
+@memoize
+def get_genotype(ref, calls):
+    allele_one = calls[0]
+    allele_two = calls[0] if len(calls)==1 else calls[1]
+    hom = allele_one == allele_two
+    if hom:
+        if ref == allele_one:
+            return "0/0"
+        else:
+            return "1/1"
+    else:
+        if ref in calls:
+            return "0/1"
+        else:
+            return "1/2"
+
 @memoize
 def get_alt_alleles(ref, calls):
     allele_one = calls[0]
@@ -70,35 +104,48 @@ def get_alt_alleles(ref, calls):
     hom = allele_one == allele_two
     if hom:
         if ref.upper() == allele_one.upper():
-            return "0/0"
-        else :
-            return "1/1"
-    else:
-        if ref in calls:
-            return "0/1"
+            return "."
         else:
-            return "1/2"
+            return "{0}".format(allele_one)
+    else:
+        if ref.upper() == allele_one.upper():
+            return "{0}".format(allele_two)
+        elif ref.upper() == allele_two.upper():
+            return "{0}".format(allele_one)
+        else:
+            return "{0},{1}".format(allele_one, allele_two)
     
 def convert_raw_data(input_path, output_path, ref_ver):
     refs = get_reference(ref_ver)
-    raw_calls = get_input(input_path)
-    vcf_rows = []
+    raw_calls_f = get_input(input_path)
     missed_calls = []
+    
+    output = open_file_for_output(output_path)
+    write_header_to_file(output, ref_ver, input_path.split("/")[-1]) 
 
-    for line in raw_calls.readlines():
+    count = 0
+
+    for line in raw_calls_f.readlines():
+        count += 1
         if "#" in line:
             continue
         (rsid, chrom, pos, calls) = line.strip().split()
+        calls = calls.upper()
+        if "I" in calls or "D" in calls:
+            continue #indels are unsupported
         ref = ""
         if rsid in refs:
-            ref = refs[rsid]
+            ref = refs[rsid].upper()
         else:
             missed_calls.append(line.strip())
             continue
-        alts = get_alt_alleles(ref,calls)
-        vcf_rows.append("\t".join([chrom, pos, rsid, ref, alts, QUAL, FILTER, INFO, FORMAT, "genotype"]))
+        genotype = get_genotype(ref, calls)
+        alts = get_alt_alleles(ref, calls)
+        output.write("\t".join([chrom, pos, rsid, ref, alts, QUAL, FILTER, INFO, FORMAT, genotype, "\n"]))
 
-    raw_calls.close()
+    output.close()
+    raw_calls_f.close()
+
     dump_missed_calls(missed_calls)
 
 def main():

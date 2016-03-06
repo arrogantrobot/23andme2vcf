@@ -1,6 +1,7 @@
 *.sw?
 *.pyc
 *.png
+*.vcf
 missed_calls.txt
 23andme2vcf
 data
