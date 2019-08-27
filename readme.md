@@ -1,3 +1,8 @@
+# Deprecated
+
+In order to increase portability, reliability, and speed, I have moved this project to https://github.com/plantimals/2vcf , where it has been reimplemented. Please check it out there. If you have any questions or comments, please show up in our issues: https://github.com/plantimals/2vcf/issues/new
+
+
 # Convert your 23andme raw data into VCF format
 
 This tool has been built in order to allow a user of 23andme to process the raw file format into a format more widely useful across bioinformatics tools, the VCF (see [format details](http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41 "VCF format description")).
